@@ -1,4 +1,4 @@
-FROM python:3.11-bullseye
+FROM python:3.11
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG KLIPPER_BRANCH="master"

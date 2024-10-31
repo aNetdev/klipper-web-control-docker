@@ -1,4 +1,4 @@
-FROM python:3.11-bullseye as builder
+FROM python:3.11 as builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG KLIPPER_BRANCH="master"
@@ -68,7 +68,7 @@ RUN ${MOONRAKER_VENV_DIR}/bin/pip install wheel gpiod && \
     ${MOONRAKER_VENV_DIR}/bin/pip install --no-cache-dir -f ${WHEELS} -r scripts/moonraker-requirements.txt
 RUN ${MOONRAKER_VENV_DIR}/bin/python -m compileall moonraker
 
-FROM python:3.11-slim-bullseye as image
+FROM python:3.11-slim as image
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -136,8 +136,8 @@ RUN pip install --no-index -f ${WHEELS} supervisord-dependent-startup gpiod nump
 USER ${USER}
 WORKDIR ${HOME}
 
-RUN mkdir -p ${HOME}/gcodes ${CONFIG_DIR} ${HOME}/.moonraker ${HOME}/.klipper_repo_backup ${HOME}/.moonraker_repo_backup
-
+RUN mkdir -p ${DATA_DIR}/gcodes ${CONFIG_DIR} ${HOME}/.moonraker ${HOME}/.klipper_repo_backup ${HOME}/.moonraker_repo_backup
+mkdir -p ${DATA_DIR} ${CONFIG_DIR} ${DATA_DIR}/backup ${DATA_DIR}/certs ${DATA_DIR}/database ${DATA_DIR}/logs ${DATA_DIR}/systemd
 VOLUME ${DATA_DIR}
 
 EXPOSE 7125
