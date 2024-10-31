@@ -84,7 +84,7 @@ RUN apt-get update && \
     libopenjp2-7 \
     libsodium-dev \
     libssl-dev \
-    libtiff5-dev \
+    libtiff6 \
     locales \
     rsync \
     supervisor \
