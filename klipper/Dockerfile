@@ -137,7 +137,6 @@ USER ${USER}
 WORKDIR ${HOME}
 
 RUN mkdir -p ${DATA_DIR}/gcodes ${CONFIG_DIR} ${HOME}/.moonraker ${HOME}/.klipper_repo_backup ${HOME}/.moonraker_repo_backup
-mkdir -p ${DATA_DIR} ${CONFIG_DIR} ${DATA_DIR}/backup ${DATA_DIR}/certs ${DATA_DIR}/database ${DATA_DIR}/logs ${DATA_DIR}/systemd
 VOLUME ${DATA_DIR}
 
 EXPOSE 7125
