@@ -1,4 +1,4 @@
-FROM python:3.10-bullseye as builder
+FROM python:3.11 as builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG KLIPPER_BRANCH="master"
@@ -74,14 +74,13 @@ RUN ${MOONRAKER_VENV_DIR}/bin/pip install wheel gpiod && \
     ${MOONRAKER_VENV_DIR}/bin/pip install --no-cache-dir -f ${WHEELS} -r scripts/moonraker-requirements.txt
 RUN ${MOONRAKER_VENV_DIR}/bin/python -m compileall moonraker
 
-
 #webcam
 WORKDIR ${HOME}
 RUN git clone https://github.com/jacksonliam/mjpg-streamer.git
 RUN cd mjpg-streamer/mjpg-streamer-experimental && make
 RUN mv mjpg-streamer/mjpg-streamer-experimental/* mjpg-streamer && rm -rf mjpg-streamer/mjpg-streamer-experimental
 
-FROM python:3.10-slim-bullseye as image
+FROM python:3.11-slim as image
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -97,7 +96,7 @@ RUN apt-get update && \
     libopenjp2-7 \
     libsodium-dev \
     libssl-dev \
-    libtiff5 \
+    libtiff6 \
     locales \
     rsync \
     supervisor \
@@ -116,7 +115,8 @@ ENV LANGUAGE en_GB:en
 
 ARG USER=klippy
 ARG HOME=/home/${USER}
-ENV CONFIG_DIR=${HOME}/printer_data/config
+ENV DATA_DIR=${HOME}/printer_data
+ENV CONFIG_DIR=${DATA_DIR}/config
 ENV KLIPPER_VENV_DIR=${HOME}/klippy-env
 ENV MOONRAKER_VENV_DIR=${HOME}/moonraker-env
 
@@ -134,24 +134,25 @@ RUN useradd --user-group --no-log-init --shell /bin/false -m -d ${HOME} ${USER} 
     usermod -a -G dialout ${USER} && \
     usermod -a -G video ${USER} && \
     mkdir -p /var/log/supervisor ${HOME}/.cache/pip && \
-    mkdir -p /var/log/klipper && chown -R ${USER}:${USER} /var/log/klipper ${HOME}
+    touch /var/log/supervisor/supervisord.log && \
+    chown -R root:${USER} /var/log/supervisor && \
+    chmod -R g=u /var/log/supervisor && \
+    mkdir -p /var/log/klipper && \
+    chown -R ${USER}:${USER} /var/log/klipper ${HOME}
 
 COPY --chown=${USER}:${USER} --from=builder ${WHEELS} ${WHEELS}
 
 RUN pip install --no-index -f ${WHEELS} supervisord-dependent-startup gpiod numpy matplotlib && \
     mkdir -p /usr/lib/python3 && \
-    ln -s /usr/local/lib/python3.10/site-packages /usr/lib/python3/dist-packages && \
+    ln -s /usr/local/lib/python3.11/site-packages /usr/lib/python3/dist-packages && \
     rm -Rf ${WHEELS}
 
 USER ${USER}
 WORKDIR ${HOME}
 
-RUN mkdir -p ${HOME}/printer_data/gcodes ${CONFIG_DIR} ${HOME}/.moonraker_database 
-
-VOLUME ${HOME}/printer_data/gcodes
-VOLUME  ${HOME}/.moonraker_database 
-VOLUME ${CONFIG_DIR}
-
+RUN mkdir -p ${DATA_DIR}/gcodes ${CONFIG_DIR} ${HOME}/.klipper_repo_backup ${HOME}/.moonraker_repo_backup ${HOME}/.moonraker_database
+VOLUME ${DATA_DIR}
+VOLUME ${HOME}/.moonraker_database 
 
 EXPOSE 7125
 
@@ -166,8 +167,8 @@ COPY --chown=${USER}:${USER} --from=builder ${MOONRAKER_VENV_DIR} ${MOONRAKER_VE
 COPY --chown=${USER}:${USER} config ${CONFIG_DIR}
 COPY --chown=${USER}:${USER} klipper/run_in_venv /usr/local/bin/run_in_venv
 
-COPY klipper/supervisord.conf /etc/supervisord/conf.d/supervisord.conf
-COPY klipper/*.ini /etc/supervisord/
+COPY klipper/supervisord.conf /etc/supervisor/supervisord.conf
+COPY klipper/*.ini /etc/supervisor/conf.d/
 
 COPY --chown=${USER}:${USER} --chmod=700 mjpgstreamer/index.html ${HOME}/www-mjpgstreamer/index.html
 COPY --chown=${USER}:${USER} --from=builder ${HOME}/mjpg-streamer ${HOME}/mjpg-streamer
@@ -175,4 +176,4 @@ COPY --chown=${USER}:${USER} --from=builder ${HOME}/mjpg-streamer ${HOME}/mjpg-s
 
 EXPOSE 8080
 
-CMD ["supervisord", "-c", "/etc/supervisord/conf.d/supervisord.conf"]
+CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf
